@@ -87,26 +87,58 @@ const Toolbar: React.FC<Props> = ({ options, updateOption, onExport }) => {
         </div>
       </section>
 
-      {/* Page Type */}
+      {/* Page Layout */}
       <section>
         <div className="flex items-center gap-2 mb-3 text-slate-700 font-semibold">
           <FileText size={18} />
-          <span>Page Type</span>
+          <span>Page Layout</span>
         </div>
-        <div className="flex gap-3">
-          {pages.map((page) => (
-            <button
-              key={page}
-              onClick={() => updateOption('pageType', page)}
-              className={`flex-1 px-4 py-3 rounded-xl transition-all ${
-                options.pageType === page
-                  ? 'bg-primary text-white'
-                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
-              }`}
-            >
-              <span className="capitalize">{page}</span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-3">
+            {pages.map((page) => (
+              <button
+                key={page}
+                onClick={() => updateOption('pageType', page)}
+                className={`flex-1 px-4 py-3 rounded-xl transition-all ${
+                  options.pageType === page
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
+                }`}
+              >
+                <span className="capitalize">{page}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => updateOption('showBorder', !options.showBorder)}
+            className={`w-full px-4 py-3 rounded-xl transition-all font-medium ${
+              options.showBorder
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
+            }`}
+          >
+            {options.showBorder ? 'Hide Page Border' : 'Show Page Border'}
+          </button>
+          
+          {options.showBorder && (
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
+                Border Width: {options.borderWidth}px
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={options.borderWidth}
+                onChange={(e) => updateOption('borderWidth', parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          )}
+
+          <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 italic">
+            💡 Tip: Click anywhere on the preview paper to set where the text starts.
+          </div>
         </div>
       </section>
 
@@ -137,10 +169,10 @@ const Toolbar: React.FC<Props> = ({ options, updateOption, onExport }) => {
         </div>
       </section>
 
-      {/* Export Button */}
+      {/* Export Button (Desktop Only) */}
       <button
         onClick={onExport}
-        className="w-full mt-4 bg-primary hover:bg-primary-hover text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+        className="hidden lg:flex w-full mt-4 bg-primary hover:bg-primary-hover text-white font-bold py-4 px-6 rounded-2xl items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
       >
         <Download size={20} />
         Download PDF

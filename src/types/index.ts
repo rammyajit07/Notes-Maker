@@ -23,4 +23,8 @@ export interface HandwritingOptions {
   letterSpacing: number;
   lineHeight: number;
   jitter: number;
+  showBorder: boolean;
+  borderWidth: number;
+  startX: number;
+  startY: number;
 }

@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import HandwritingCanvas from '@/components/HandwritingCanvas';
 import Toolbar from '@/components/Toolbar';
 import { useHandwriting } from '@/hooks/useHandwriting';
 import { jsPDF } from 'jspdf';
+import Konva from 'konva';
 import { FileEdit, ChevronDown, ChevronUp, Settings2, Download } from 'lucide-react';
 
 export default function Home() {
   const { options, updateOption, updateCurrentPageText, goToPage } = useHandwriting();
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const stageRef = useRef<Konva.Stage>(null);
 
   const handleExport = async () => {
     // Find the last page that has text
@@ -21,11 +23,34 @@ export default function Home() {
       }
     });
 
+    // Request file handle BEFORE async generation to preserve user gesture in Chrome/Brave
+    let fileHandle: any = null;
+    try {
+      if ('showSaveFilePicker' in window) {
+        // @ts-ignore
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: 'handwritten-assignment.pdf',
+          types: [{
+            description: 'PDF Document',
+            accept: { 'application/pdf': ['.pdf'] },
+          }],
+        });
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return; // User cancelled the native save dialog
+      }
+      console.warn('File picker failed, falling back to standard download', err);
+    }
+
     setIsExporting(true);
+    
+    // Create PDF with A4 dimensions
+    // A4 is 210mm x 297mm
     const pdf = new jsPDF({
-      orientation: 'p',
-      unit: 'px',
-      format: 'a4' // Use standard A4
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
     });
 
     const originalPage = options.currentPage;
@@ -35,12 +60,12 @@ export default function Home() {
       // Switch to the page to render it on the canvas
       goToPage(i);
       
-      // Wait a small bit for React to re-render the canvas
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for React and Konva to re-render
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      const canvas = document.querySelector('canvas');
-      if (canvas) {
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      if (stageRef.current) {
+        // Capture the Stage at its full resolution (no scaling)
+        const imgData = stageRef.current.toDataURL({ pixelRatio: 2 });
         
         // On pages after the first, add a new page to the PDF
         if (i > 0) {
@@ -49,15 +74,37 @@ export default function Home() {
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       }
     }
 
     // Return to the original page user was on
     goToPage(originalPage);
     setIsExporting(false);
+
+    // If we got a native file handle, write directly to it (Chrome/Edge/Brave)
+    if (fileHandle) {
+      try {
+        const writable = await fileHandle.createWritable();
+        const pdfBlob = pdf.output('blob');
+        await writable.write(pdfBlob);
+        await writable.close();
+        return; // Success!
+      } catch (err) {
+        console.error('Failed to write to file handle', err);
+        // Fallback if writing fails
+      }
+    }
     
-    pdf.save('handwritten-assignment.pdf');
+    // Fallback for Safari/Firefox (or if filePicker failed)
+    const dataUri = pdf.output('datauristring');
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.download = 'handwritten-assignment.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -78,10 +125,10 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Left Column: Input and Controls */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="w-full lg:w-[380px] space-y-6 flex-shrink-0">
             <div className="glass rounded-2xl p-6 paper-shadow">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-slate-700 font-semibold">Your Text</label>
@@ -149,7 +196,7 @@ export default function Home() {
           </div>
 
           {/* Right Column: Preview */}
-          <div className="lg:col-span-8 lg:sticky lg:top-8">
+          <div className="w-full flex-grow lg:sticky lg:top-8">
             <div className="flex items-center justify-between mb-4 px-2">
               <h2 className="text-lg font-semibold text-slate-700">
                 Live Preview <span className="text-slate-400 font-normal ml-2">(Page {options.currentPage + 1})</span>
@@ -159,8 +206,13 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="relative aspect-[210/297] w-full max-w-[800px] mx-auto">
-              <HandwritingCanvas options={options} />
+            <div className="relative w-full max-w-[794px] mx-auto bg-slate-200/30 p-1 sm:p-2 rounded-xl border border-slate-200/50">
+              <HandwritingCanvas 
+                options={options} 
+                stageRef={stageRef} 
+                updateOption={updateOption}
+              />
+
               
               {isExporting && (
                 <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
@@ -171,29 +223,14 @@ export default function Home() {
               )}
             </div>
 
-            <div className="mt-6 flex flex-col items-center gap-4">
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="w-full max-w-md bg-primary hover:bg-primary-hover text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isExporting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Download size={20} />
-                    Download Multi-Page PDF
-                  </>
-                )}
-              </button>
-              
-              <p className="text-center text-sm text-slate-400 px-4">
-                 Your PDF will include all pages up to your last written page.
-              </p>
-            </div>
+            {/* Mobile Export Button (Below Paper) */}
+            <button
+              onClick={handleExport}
+              className="lg:hidden w-full mt-6 bg-primary hover:bg-primary-hover text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+            >
+              <Download size={20} />
+              Download PDF
+            </button>
           </div>
 
         </div>

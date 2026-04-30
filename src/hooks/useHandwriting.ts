@@ -14,6 +14,10 @@ export const useHandwriting = () => {
     letterSpacing: 2,
     lineHeight: 1.5,
     jitter: 1.5,
+    showBorder: false,
+    borderWidth: 4,
+    startX: 80,
+    startY: 60,
   });
 
   const updateOption = <K extends keyof HandwritingOptions>(

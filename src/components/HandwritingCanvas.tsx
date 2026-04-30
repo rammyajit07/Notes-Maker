@@ -2,31 +2,40 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Stage, Layer, Text, Line, Rect } from 'react-konva';
+import Konva from 'konva';
 import { HandwritingOptions } from '../types';
 
 interface Props {
   options: HandwritingOptions;
+  stageRef?: React.RefObject<Konva.Stage | null>;
+  updateOption?: <K extends keyof HandwritingOptions>(key: K, value: HandwritingOptions[K]) => void;
 }
 
-const HandwritingCanvas: React.FC<Props> = ({ options }) => {
+const HandwritingCanvas: React.FC<Props> = ({ options, stageRef, updateOption }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   
   // Fixed high-resolution base dimensions for A4 (Standard for PDF export)
-  const BASE_WIDTH = 800;
-  const BASE_HEIGHT = 1131;
+  const BASE_WIDTH = 794; // 210mm at 96 DPI
+  const BASE_HEIGHT = 1123; // 297mm at 96 DPI
 
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
+        // Use the container's width to calculate scale
+        const containerWidth = containerRef.current.clientWidth;
         setScale(containerWidth / BASE_WIDTH);
       }
     };
 
-    handleResize();
+    // Small delay to ensure container is rendered
+    const timeoutId = setTimeout(handleResize, 0);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   const {
@@ -44,8 +53,8 @@ const HandwritingCanvas: React.FC<Props> = ({ options }) => {
   const text = pagesText[currentPage] || '';
 
   const color = inkColor === 'blue' ? '#0000ff' : '#1a1a1a';
-  const marginX = 80;
-  const marginY = 60;
+  const marginX = options.startX ?? 80;
+  const marginY = options.startY ?? 60;
   const lineGap = fontSize * lineHeight;
 
   const lines = text.split('\n');
@@ -87,11 +96,13 @@ const HandwritingCanvas: React.FC<Props> = ({ options }) => {
   const renderBackground = () => {
     if (pageType === 'plain') return null;
 
+    const bgMarginX = 80;
+    const bgMarginY = 60;
     const lineElements = [];
-    const numLines = Math.floor((BASE_HEIGHT - marginY) / lineGap);
+    const numLines = Math.floor((BASE_HEIGHT - bgMarginY) / lineGap);
 
     for (let i = 0; i <= numLines; i++) {
-        const y = marginY + i * lineGap + (fontSize * 0.8);
+        const y = bgMarginY + i * lineGap + (fontSize * 0.8);
         lineElements.push(
             <Line
                 key={`line-${i}`}
@@ -105,7 +116,7 @@ const HandwritingCanvas: React.FC<Props> = ({ options }) => {
     lineElements.push(
         <Line
             key="margin-line"
-            points={[marginX, 0, marginX, BASE_HEIGHT]}
+            points={[bgMarginX, 0, bgMarginX, BASE_HEIGHT]}
             stroke="#fecaca"
             strokeWidth={2}
         />
@@ -114,18 +125,60 @@ const HandwritingCanvas: React.FC<Props> = ({ options }) => {
     return lineElements;
   };
 
+  const renderBorder = () => {
+    if (!options.showBorder) return null;
+    
+    // Fallback to 4 if somehow undefined
+    const bw = options.borderWidth ?? 4; 
+    
+    return (
+      <Rect
+        // Offset by half the border width so the stroke isn't clipped by the edge
+        x={bw / 2}
+        y={bw / 2}
+        width={BASE_WIDTH - bw}
+        height={BASE_HEIGHT - bw}
+        stroke="#333333"
+        strokeWidth={bw}
+      />
+    );
+  };
+
+  const handleStageClick = (e: any) => {
+    if (!updateOption) return;
+    const stage = e.target.getStage();
+    const pos = stage.getPointerPosition();
+    if (pos) {
+      updateOption('startX', pos.x);
+      updateOption('startY', pos.y);
+    }
+  };
+
   return (
-    <div ref={containerRef} className="w-full h-full bg-white paper-shadow rounded-lg overflow-hidden flex items-start justify-center">
+    <div 
+      ref={containerRef} 
+      className="w-full h-auto bg-white paper-shadow rounded-sm overflow-hidden flex items-start justify-center"
+      style={{ aspectRatio: `${BASE_WIDTH} / ${BASE_HEIGHT}` }}
+    >
       <div style={{ 
         transform: `scale(${scale})`, 
         transformOrigin: 'top center',
         width: BASE_WIDTH,
-        height: BASE_HEIGHT
+        height: BASE_HEIGHT,
+        flexShrink: 0
       }}>
-        <Stage width={BASE_WIDTH} height={BASE_HEIGHT}>
+        <Stage 
+          width={BASE_WIDTH} 
+          height={BASE_HEIGHT} 
+          id="handwriting-stage"
+          ref={stageRef}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
+        >
           <Layer>
             <Rect width={BASE_WIDTH} height={BASE_HEIGHT} fill="white" />
             {renderBackground()}
+            {renderBorder()}
             {lines.map((line, index) => (
               <React.Fragment key={`line-frag-${index}`}>
                 {renderLine(line, index)}
