@@ -22,7 +22,12 @@ const Toolbar: React.FC<Props> = ({ options, updateOption, onExport }) => {
     'Reenie Beanie',
     'Gloria Hallelujah',
     'Nothing You Could Do',
-    'Just Me Again Down Here'
+    'Just Me Again Down Here',
+    'Kalam',
+    'Zeyada',
+    'Patrick Hand',
+    'Architects Daughter',
+    'Neucha'
   ];
   
   const colors: InkColor[] = ['blue', 'black'];

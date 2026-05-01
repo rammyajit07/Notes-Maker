@@ -6,13 +6,35 @@ import Toolbar from '@/components/Toolbar';
 import { useHandwriting } from '@/hooks/useHandwriting';
 import { jsPDF } from 'jspdf';
 import Konva from 'konva';
-import { FileEdit, ChevronDown, ChevronUp, Settings2, Download } from 'lucide-react';
+import { FileEdit, ChevronDown, ChevronUp, Settings2, Download, Image as ImageIcon } from 'lucide-react';
 
 export default function Home() {
-  const { options, updateOption, updateCurrentPageText, goToPage } = useHandwriting();
+  const { options, updateOption, updateCurrentPageText, goToPage, addImage, updateImage, removeImage, addTextBlock, updateTextBlock, removeTextBlock } = useHandwriting();
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const stageRef = useRef<Konva.Stage>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const src = event.target?.result as string;
+      if (addImage) {
+        addImage({
+          id: Date.now().toString(),
+          src,
+          x: 100,
+          y: 100,
+          width: 200,
+          height: 200,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const handleExport = async () => {
     // Find the last page that has text
@@ -144,6 +166,61 @@ export default function Home() {
                 className="w-full h-48 lg:h-64 p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none bg-white text-slate-700 placeholder:text-slate-300"
               />
 
+              {options.pageBlocks && options.pageBlocks[options.currentPage]?.map((block, index) => (
+                <div key={block.id} className="relative mt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Extra Text Block {index + 1}</label>
+                    <button
+                      onClick={() => removeTextBlock && removeTextBlock(block.id)}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <textarea
+                    value={block.text}
+                    onChange={(e) => updateTextBlock && updateTextBlock(block.id, { text: e.target.value })}
+                    placeholder="Type extra content..."
+                    className="w-full h-24 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none bg-white text-slate-700 text-sm placeholder:text-slate-300"
+                  />
+                </div>
+              ))}
+
+              <button
+                onClick={() => addTextBlock && addTextBlock({
+                  id: Date.now().toString(),
+                  text: '',
+                  x: 100,
+                  y: 100 + ((options.pageBlocks?.[options.currentPage]?.length || 0) * 50)
+                })}
+                className="w-full mt-3 py-2 border border-dashed border-primary/50 text-primary rounded-xl font-medium hover:bg-blue-50 transition-colors text-sm"
+              >
+                + Add Extra Text Block
+              </button>
+
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 bg-blue-50 text-primary px-3 py-2 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors text-sm font-medium">
+                    <ImageIcon size={16} />
+                    Insert Image
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  </label>
+                  {options.pageImages && options.pageImages[options.currentPage]?.length > 0 && (
+                    <button 
+                      onClick={() => {
+                        const images = options.pageImages[options.currentPage];
+                        if (images && removeImage) {
+                          images.forEach(img => removeImage(img.id));
+                        }
+                      }}
+                      className="text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Clear Images
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Page Navigation */}
               <div className="flex items-center gap-2 mt-4">
                 <button
@@ -211,6 +288,9 @@ export default function Home() {
                 options={options} 
                 stageRef={stageRef} 
                 updateOption={updateOption}
+                updateImage={updateImage}
+                updateTextBlock={updateTextBlock}
+                isExporting={isExporting}
               />
 
               

@@ -11,10 +11,33 @@ export type HandwritingStyle =
   | 'Just Me Again Down Here' 
   | 'Gochi Hand' 
   | 'Gloria Hallelujah' 
-  | 'Indie Flower';
+  | 'Indie Flower'
+  | 'Kalam'
+  | 'Zeyada'
+  | 'Patrick Hand'
+  | 'Architects Daughter'
+  | 'Neucha';
+
+export interface ImageItem {
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface TextBlock {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+}
 
 export interface HandwritingOptions {
   pagesText: string[]; // Text content for each page
+  pageBlocks?: Record<number, TextBlock[]>; // Additional text blocks
+  pageImages: Record<number, ImageItem[]>; // Images for each page
   currentPage: number;
   style: HandwritingStyle;
   inkColor: InkColor;
