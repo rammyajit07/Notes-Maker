@@ -16,7 +16,9 @@ export type HandwritingStyle =
   | 'Zeyada'
   | 'Patrick Hand'
   | 'Architects Daughter'
-  | 'Neucha';
+  | 'Neucha'
+  | 'Times New Roman'
+  | 'Arial';
 
 export interface ImageItem {
   id: string;
@@ -32,6 +34,8 @@ export interface TextBlock {
   text: string;
   x: number;
   y: number;
+  fontSize?: number;
+  jitter?: number;
 }
 
 export interface HandwritingOptions {

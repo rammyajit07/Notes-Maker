@@ -27,7 +27,9 @@ const Toolbar: React.FC<Props> = ({ options, updateOption, onExport }) => {
     'Zeyada',
     'Patrick Hand',
     'Architects Daughter',
-    'Neucha'
+    'Neucha',
+    'Times New Roman',
+    'Arial'
   ];
   
   const colors: InkColor[] = ['blue', 'black'];

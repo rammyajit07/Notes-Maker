@@ -232,7 +232,18 @@ const HandwritingCanvas: React.FC<Props> = ({
                   node.y(0);
                 }}
               >
-                {renderChars(block.text, block.x, block.y, fontSize, letterSpacing, lineHeight, jitter, color, style, `block-${block.id}`)}
+                {renderChars(
+                  block.text,
+                  block.x,
+                  block.y,
+                  block.fontSize ?? fontSize,
+                  letterSpacing,
+                  lineHeight,
+                  block.jitter ?? jitter,
+                  color,
+                  style,
+                  `block-${block.id}`
+                )}
               </Group>
             ))}
           </Layer>

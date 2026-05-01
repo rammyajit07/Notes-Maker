@@ -167,9 +167,9 @@ export default function Home() {
               />
 
               {options.pageBlocks && options.pageBlocks[options.currentPage]?.map((block, index) => (
-                <div key={block.id} className="relative mt-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Extra Text Block {index + 1}</label>
+                <div key={block.id} className="relative mt-3 bg-slate-50 rounded-xl border border-slate-200 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Text Block {index + 1}</label>
                     <button
                       onClick={() => removeTextBlock && removeTextBlock(block.id)}
                       className="text-xs text-red-500 hover:text-red-700 font-medium"
@@ -180,9 +180,33 @@ export default function Home() {
                   <textarea
                     value={block.text}
                     onChange={(e) => updateTextBlock && updateTextBlock(block.id, { text: e.target.value })}
-                    placeholder="Type extra content..."
-                    className="w-full h-24 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none bg-white text-slate-700 text-sm placeholder:text-slate-300"
+                    placeholder="Type content..."
+                    className="w-full h-20 p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none bg-white text-slate-700 text-sm placeholder:text-slate-300"
                   />
+                  <div className="mt-2 space-y-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">
+                        Font Size: {block.fontSize ?? options.fontSize}px
+                      </label>
+                      <input
+                        type="range" min="12" max="40"
+                        value={block.fontSize ?? options.fontSize}
+                        onChange={(e) => updateTextBlock && updateTextBlock(block.id, { fontSize: parseInt(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">
+                        Realism (Jitter): {block.jitter ?? options.jitter}
+                      </label>
+                      <input
+                        type="range" min="0" max="8" step="0.5"
+                        value={block.jitter ?? options.jitter}
+                        onChange={(e) => updateTextBlock && updateTextBlock(block.id, { jitter: parseFloat(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
 
